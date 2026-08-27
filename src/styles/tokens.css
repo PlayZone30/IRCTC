@@ -1,0 +1,82 @@
+/*
+ * RailIndia design tokens — PLAN.md §3.1
+ * Colour palette taken directly from inspiration/image.png ("easyticket").
+ * Do not add colours outside this file. Do not use the Signal Archive
+ * theme from the workspace root (index.css / atlas-enhancements.css) —
+ * that belongs to the earlier research microsite, not this product.
+ */
+
+:root {
+  /* Core, taken directly from the inspiration palette */
+  --ink: #181d2a; /* primary text, dark surfaces, primary buttons */
+  --primary: #748efe; /* accent: prices, active chips, selected states, links */
+  --surface-sunken: #e8ebed; /* app background behind cards */
+  --surface: #ffffff; /* cards, inputs, sheets */
+
+  /* Derived neutrals */
+  --ink-2: #4a5364; /* secondary text */
+  --ink-3: #7c8698; /* tertiary text, placeholders */
+  --hairline: #e2e6ea; /* 1px borders */
+  --surface-2: #f4f6f7; /* nested panel, transfer chips */
+  --primary-weak: #eef1ff; /* tinted background for primary states */
+  --primary-press: #5b76f0; /* hover/active on primary */
+  --ink-press: #232b3d; /* hover on dark buttons */
+
+  /* Accents */
+  --accent: #e8552f; /* the orange "Cheapest" chip; use sparingly */
+  --accent-weak: #fdede8;
+
+  /* Availability semantics — never colour alone, always with text */
+  --cnf: #12805a;
+  --cnf-weak: #e6f5ef;
+  --rac: #a9600c;
+  --rac-weak: #fdf1e3;
+  --wl: #c0392b;
+  --wl-weak: #fcebe9;
+  --regret: #7c8698;
+  --regret-weak: #f1f3f5;
+
+  /* Radii */
+  --r-card: 20px;
+  --r-field: 12px;
+  --r-chip: 999px;
+  --r-btn: 12px;
+  --r-sheet: 24px;
+
+  /* Elevation — soft and low, never dramatic */
+  --shadow-1: 0 1px 2px rgba(24, 29, 42, 0.04);
+  --shadow-2: 0 1px 2px rgba(24, 29, 42, 0.04), 0 8px 24px rgba(24, 29, 42, 0.06);
+  --shadow-3: 0 12px 40px rgba(24, 29, 42, 0.12);
+
+  /* Focus — must be visible on every interactive element */
+  --focus: 0 0 0 3px rgba(116, 142, 254, 0.45);
+
+  /* Typography */
+  --font: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Accessibility: text-size scale, controlled by the A-/A/A+ control (§3.6) */
+  --font-scale: 1;
+
+  /* Spacing scale, §3.3 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 56px;
+  --sp-10: 72px;
+}
+
+/* Tabular figures on all numeric content — times, fares, PNRs, berths */
+.tnum,
+time,
+.fare,
+.pnr,
+.berth {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Expose tokens to Tailwind v4 utilities via @theme (see index.css) */
