@@ -21,6 +21,8 @@ import {
   searchTrains,
   type SearchResult,
 } from '@/domain/availability';
+import { confirmationEvidenceFor } from '@/domain/confirmation';
+import { ConfirmationEvidenceBlock } from '@/components/booking/ConfirmationEvidence';
 import { CLASS_LABELS, CLASS_OPTIONS, QUOTA_OPTIONS } from '@/domain/rules';
 import { stationByCode, stations } from '@/data/stations';
 import { useBookingStore } from '@/store/booking';
@@ -67,6 +69,14 @@ export function Results() {
         ...(toCode ? { toCode } : {}),
         ...(date ? { date } : {}),
       });
+    }
+    // DEV-ONLY: ?selectTrain=NNNNN&selectClass=SL pre-selects a class cell,
+    // purely to make a specific expansion state screenshot-able without
+    // scripting a click. Harmless outside manual verification.
+    const selectTrain = params.get('selectTrain');
+    const selectClass = params.get('selectClass');
+    if (selectTrain && selectClass) {
+      setSelectedClassByTrain((s) => ({ ...s, [selectTrain]: selectClass as ClassCode }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -325,7 +335,13 @@ function TrainCard({
   const dayDelta = toHalt && fromHalt ? toHalt.day - fromHalt.day : 0;
 
   const nothingConfirmed = inventories.every((i) => confirmationRankForStatus(i.status.kind) >= 3);
-  const selected = selectedClass ? inventories.find((i) => i.classCode === selectedClass) : undefined;
+  // Guard: REGRET/NOT_AVAILABLE are not bookable — AvailabilityCell already
+  // disables selection for these, but this guard keeps the book panel honest
+  // even if a class becomes selected some other way (e.g. a stale selection
+  // carried over after changing the date).
+  const selected = selectedClass
+    ? inventories.find((i) => i.classCode === selectedClass && i.status.kind !== 'REGRET' && i.status.kind !== 'NOT_AVAILABLE')
+    : undefined;
 
   return (
     <Card className="overflow-hidden p-0">
@@ -380,14 +396,29 @@ function TrainCard({
         </div>
 
         {selected ? (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--r-field)] bg-[var(--surface-2)] p-4">
-            <div>
-              <p className="tnum text-lg font-bold text-[var(--primary-press)]">{formatRupees(selected.baseFare)}</p>
-              <p className="text-xs text-[var(--ink-3)]">Total for one adult, {CLASS_LABELS[selected.classCode]}</p>
+          <div className="mt-4 flex flex-col gap-3">
+            {/* E.1 block 1 — confirmation evidence, §7.5. Only meaningful for a
+                waitlisted status; CNF/RAC already have a definite outcome. */}
+            {selected.status.kind === 'WL'
+              ? (() => {
+                  const evidence = confirmationEvidenceFor(train.number, selected.classCode, selected.status.number);
+                  const { label } = describeStatus(selected.status);
+                  return evidence ? (
+                    <ConfirmationEvidenceBlock evidence={evidence} classLabel={CLASS_LABELS[selected.classCode]} statusLabel={label} />
+                  ) : null;
+                })()
+              : null}
+
+            {/* E.1 block 3 — book row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--r-field)] bg-[var(--surface-2)] p-4">
+              <div>
+                <p className="tnum text-lg font-bold text-[var(--primary-press)]">{formatRupees(selected.baseFare)}</p>
+                <p className="text-xs text-[var(--ink-3)]">Total for one adult, {CLASS_LABELS[selected.classCode]}</p>
+              </div>
+              <Button variant="accent" onClick={() => onBook(selected.classCode)}>
+                Book
+              </Button>
             </div>
-            <Button variant="accent" onClick={() => onBook(selected.classCode)}>
-              Book
-            </Button>
           </div>
         ) : null}
 
