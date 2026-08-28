@@ -1,8 +1,18 @@
 /**
  * Seeded inventory — PLAN.md §10.3. Deliberately authored booking
  * statuses per train/class/date so no demo path is ever empty.
- * Keyed by `${trainNumber}|${date}|${classCode}`. availability.ts
- * (Task 4) reads this map; nothing else should define inventory.
+ * availability.ts (Task 4) reads this map; nothing else should define
+ * inventory.
+ *
+ * `boardingStationCode` — optional. Indian Railways segments quota by
+ * origin-station pair (§7.4, §8.10: GNWL vs RLWL vs PQWL), so the same
+ * train/date/class can be REGRET for one boarding station and CNF for
+ * an upstream one. Most seeded entries omit it, meaning "applies
+ * regardless of boarding station" (the common case for trains where
+ * we aren't demonstrating the alternates feature). The hero case
+ * (12624) sets it explicitly: REGRET when boarding at KYJ, CNF when
+ * boarding at the upstream station QLN. findInventory() falls back
+ * from a station-specific entry to a station-agnostic one.
  */
 import type { BookingStatus, ClassCode } from '@/domain/types';
 
@@ -14,13 +24,14 @@ export interface InventoryEntry {
   trainNumber: string;
   date: string;
   classCode: ClassCode;
+  boardingStationCode?: string;
   status: BookingStatus;
   baseFarePaise: number;
   updatedAgoSec: number;
 }
 
-function key(trainNumber: string, date: string, classCode: ClassCode): string {
-  return `${trainNumber}|${date}|${classCode}`;
+function key(trainNumber: string, date: string, classCode: ClassCode, boardingStationCode?: string): string {
+  return `${trainNumber}|${date}|${classCode}|${boardingStationCode ?? '*'}`;
 }
 
 export const inventory: InventoryEntry[] = [
@@ -55,11 +66,16 @@ export const inventory: InventoryEntry[] = [
   { trainNumber: '12721', date: DEMO_DATE, classCode: '2A', status: { kind: 'CNF', coach: 'A1', berth: 3, berthType: 'LB' }, baseFarePaise: 285000, updatedAgoSec: 15 },
 
   // 12624 Chennai Mail — THE HERO CASE. Sold out from Kayankulam (KYJ),
-  // confirmed from Kollam Jn (QLN). The alternates generator (§7.4)
-  // finds this by scanning per-station-pair inventory in availability.ts.
-  { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: 'SL', status: { kind: 'REGRET' }, baseFarePaise: 62500, updatedAgoSec: 10 },
-  { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: '3A', status: { kind: 'REGRET' }, baseFarePaise: 158000, updatedAgoSec: 10 },
-  { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: '2A', status: { kind: 'WL', type: 'GNWL', number: 46 }, baseFarePaise: 231000, updatedAgoSec: 10 },
+  // confirmed from Kollam Jn (QLN, one halt upstream). This is the
+  // segment-quota exhaustion the "board earlier" alternate exploits.
+  { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: 'SL', boardingStationCode: 'KYJ', status: { kind: 'REGRET' }, baseFarePaise: 62500, updatedAgoSec: 10 },
+  { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: '3A', boardingStationCode: 'KYJ', status: { kind: 'REGRET' }, baseFarePaise: 158000, updatedAgoSec: 10 },
+  { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: '2A', boardingStationCode: 'KYJ', status: { kind: 'WL', type: 'GNWL', number: 46 }, baseFarePaise: 231000, updatedAgoSec: 10 },
+  // Upstream at Kollam Jn (QLN), the same train/date/class is confirmed —
+  // unused per-segment quota from the originating end of the route.
+  { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: 'SL', boardingStationCode: 'QLN', status: { kind: 'CNF', coach: 'S3', berth: 19, berthType: 'LB' }, baseFarePaise: 65000, updatedAgoSec: 10 },
+  { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: '3A', boardingStationCode: 'QLN', status: { kind: 'CNF', coach: 'B2', berth: 41, berthType: 'SU' }, baseFarePaise: 163500, updatedAgoSec: 10 },
+  { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: '2A', boardingStationCode: 'QLN', status: { kind: 'CNF', coach: 'A1', berth: 9, berthType: 'UB' }, baseFarePaise: 237000, updatedAgoSec: 10 },
 
   // 20635 Vande Bharat — confirmed-only, T-15 current booking.
   { trainNumber: '20635', date: DEMO_DATE, classCode: 'CC', status: { kind: 'CNF', coach: 'C3', berth: 22, berthType: 'A' }, baseFarePaise: 89500, updatedAgoSec: 5 },
@@ -71,11 +87,51 @@ export const inventory: InventoryEntry[] = [
   { trainNumber: '12951', date: DEMO_DATE_PLUS_1, classCode: '1A', status: { kind: 'CNF_NO_BERTH' }, baseFarePaise: 512000, updatedAgoSec: 8 },
 ];
 
-export function findInventory(trainNumber: string, date: string, classCode: ClassCode): InventoryEntry | undefined {
-  const k = key(trainNumber, date, classCode);
-  return inventory.find((e) => key(e.trainNumber, e.date, e.classCode) === k);
+/**
+ * Look up one train/date/class entry, optionally scoped to a boarding
+ * station. If a station-specific entry exists it wins; otherwise falls
+ * back to the station-agnostic entry (the common case). Passing no
+ * boardingStationCode returns the station-agnostic entry only, which
+ * is what a plain train-vs-train comparison (Results, §S2) wants —
+ * it should not silently pick up a station-specific override.
+ */
+export function findInventory(trainNumber: string, date: string, classCode: ClassCode, boardingStationCode?: string): InventoryEntry | undefined {
+  if (boardingStationCode) {
+    const specific = inventory.find(
+      (e) => e.trainNumber === trainNumber && e.date === date && e.classCode === classCode && e.boardingStationCode === boardingStationCode,
+    );
+    if (specific) return specific;
+  }
+  return inventory.find(
+    (e) => e.trainNumber === trainNumber && e.date === date && e.classCode === classCode && e.boardingStationCode === undefined,
+  );
 }
 
-export function inventoryForTrainAndDate(trainNumber: string, date: string): InventoryEntry[] {
-  return inventory.filter((e) => e.trainNumber === trainNumber && e.date === date);
+/**
+ * All entries for a train/date, resolved per class for a given boarding
+ * station (station-specific entries win over station-agnostic ones,
+ * same fallback as findInventory). Used by Results (§S2) to render the
+ * all-class comparison row for a specific search.
+ */
+export function inventoryForTrainAndDate(trainNumber: string, date: string, boardingStationCode?: string): InventoryEntry[] {
+  const entries = inventory.filter((e) => e.trainNumber === trainNumber && e.date === date);
+  const byClass = new Map<ClassCode, InventoryEntry>();
+  for (const entry of entries) {
+    const isSpecificMatch = boardingStationCode && entry.boardingStationCode === boardingStationCode;
+    const isAgnostic = entry.boardingStationCode === undefined;
+    const existing = byClass.get(entry.classCode);
+    if (isSpecificMatch) {
+      byClass.set(entry.classCode, entry); // station-specific always wins
+    } else if (isAgnostic && (!existing || existing.boardingStationCode !== boardingStationCode)) {
+      byClass.set(entry.classCode, entry);
+    }
+  }
+  return Array.from(byClass.values());
 }
+
+/** All boarding-station-specific entries for a train/date/class — used by the alternates generator (§7.4/Task 6). */
+export function inventoryVariantsForClass(trainNumber: string, date: string, classCode: ClassCode): InventoryEntry[] {
+  return inventory.filter((e) => e.trainNumber === trainNumber && e.date === date && e.classCode === classCode);
+}
+
+export { key as inventoryKey };

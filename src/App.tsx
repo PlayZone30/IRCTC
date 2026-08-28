@@ -4,9 +4,12 @@ import { AppShell } from '@/components/ui/AppShell';
 import { ToastHost } from '@/components/ui/Toast';
 import { DevGallery } from '@/screens/DevGallery';
 import { Landing } from '@/screens/Landing';
+import { Results } from '@/screens/Results';
+import { NotFound } from '@/screens/NotFound';
 
 const builtScreens: Partial<Record<(typeof routeDefs)[number]['path'], React.ReactNode>> = {
   '/': <Landing />,
+  '/search': <Results />,
 };
 
 function App() {
@@ -19,6 +22,8 @@ function App() {
           ))}
           {/* Dev-only, not part of PLAN.md §4 route map. Remove before shipping. */}
           <Route path="/__gallery" element={<DevGallery />} />
+          {/* Catch-all — PLAN.md §0 rule 4: never a dead end. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>
       <ToastHost />

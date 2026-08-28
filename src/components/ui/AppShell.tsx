@@ -47,6 +47,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen">
+      {/* Skip-to-content link — essential for keyboard users, visually hidden until focused. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-[var(--r-field)] focus:bg-[var(--ink)] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white"
+      >
+        Skip to content
+      </a>
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-[var(--hairline)] bg-[var(--surface)] px-4 sm:px-6">
         <Link to="/" className="flex min-w-0 items-center gap-2.5 text-[var(--ink)]">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary)] text-white">
@@ -147,7 +154,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
       ) : null}
 
-      <main>{children}</main>
+      <main id="main-content">{children}</main>
 
       <footer className="border-t border-[var(--hairline)] bg-[var(--ink)] px-4 py-10 text-[var(--ink-3)] sm:px-6">
         <div className="mx-auto grid max-w-[1200px] gap-8 sm:grid-cols-2 md:grid-cols-4">
