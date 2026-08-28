@@ -59,7 +59,12 @@ describe('mock data referential integrity', () => {
     const qlm = stations.find((s) => s.code === 'QLM');
     expect(qln).toBeDefined();
     expect(qlm).toBeDefined();
-    expect(qln!.aliases).toContain('kollam');
+    // Both stations share the city "Kollam" but neither owns the bare word as
+    // an alias, so "kollam" resolves to both and the agent must ask (§7.11.3).
+    expect(qln!.city.toLowerCase()).toBe('kollam');
+    expect(qlm!.city.toLowerCase()).toBe('kollam');
+    expect(qln!.aliases).not.toContain('kollam');
+    expect(qln!.aliases.some((a) => a.includes('kollam'))).toBe(true);
     expect(qlm!.aliases.some((a) => a.includes('kollam'))).toBe(true);
   });
 

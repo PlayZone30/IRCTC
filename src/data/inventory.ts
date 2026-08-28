@@ -19,6 +19,14 @@ import type { BookingStatus, ClassCode } from '@/domain/types';
 export const DEMO_DATE = '2026-08-27'; // "today" for the whole seeded dataset
 export const DEMO_DATE_PLUS_1 = '2026-08-28';
 export const DEMO_DATE_PLUS_2 = '2026-08-29';
+/**
+ * The date used by the seeded agent demo ("book Kollam to Chennai on 12
+ * September"). On this date 12624 is nothing-confirmed boarding at
+ * Kollam Jn (QLN) but confirmed from the upstream origin Trivandrum
+ * (TVC), so Sarathi's "propose an alternate because nothing is
+ * confirmed" branch (§7.11) fires over real inventory.
+ */
+export const DEMO_AGENT_DATE = '2026-09-12';
 
 export interface InventoryEntry {
   trainNumber: string;
@@ -84,6 +92,17 @@ export const inventory: InventoryEntry[] = [
   { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: 'SL', boardingStationCode: 'QLN', status: { kind: 'CNF', coach: 'S3', berth: 19, berthType: 'LB' }, baseFarePaise: 65000, updatedAgoSec: 10 },
   { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: '3A', boardingStationCode: 'QLN', status: { kind: 'CNF', coach: 'B2', berth: 41, berthType: 'SU' }, baseFarePaise: 163500, updatedAgoSec: 10 },
   { trainNumber: '12624', date: DEMO_DATE_PLUS_2, classCode: '2A', boardingStationCode: 'QLN', status: { kind: 'CNF', coach: 'A1', berth: 9, berthType: 'UB' }, baseFarePaise: 237000, updatedAgoSec: 10 },
+
+  // 12624 Chennai Mail on the agent-demo date — nothing confirmed
+  // boarding at Kollam Jn (QLN), confirmed from the upstream origin
+  // Trivandrum (TVC). Same board-earlier shape as the KYJ hero, but
+  // reachable from the literal "book Kollam to Chennai" utterance.
+  { trainNumber: '12624', date: DEMO_AGENT_DATE, classCode: 'SL', boardingStationCode: 'QLN', status: { kind: 'REGRET' }, baseFarePaise: 62500, updatedAgoSec: 12 },
+  { trainNumber: '12624', date: DEMO_AGENT_DATE, classCode: '3A', boardingStationCode: 'QLN', status: { kind: 'REGRET' }, baseFarePaise: 158000, updatedAgoSec: 12 },
+  { trainNumber: '12624', date: DEMO_AGENT_DATE, classCode: '2A', boardingStationCode: 'QLN', status: { kind: 'WL', type: 'GNWL', number: 38 }, baseFarePaise: 231000, updatedAgoSec: 12 },
+  { trainNumber: '12624', date: DEMO_AGENT_DATE, classCode: 'SL', boardingStationCode: 'TVC', status: { kind: 'CNF', coach: 'S4', berth: 23, berthType: 'LB' }, baseFarePaise: 68500, updatedAgoSec: 12 },
+  { trainNumber: '12624', date: DEMO_AGENT_DATE, classCode: '3A', boardingStationCode: 'TVC', status: { kind: 'CNF', coach: 'B3', berth: 8, berthType: 'LB' }, baseFarePaise: 172000, updatedAgoSec: 12 },
+  { trainNumber: '12624', date: DEMO_AGENT_DATE, classCode: '2A', boardingStationCode: 'TVC', status: { kind: 'CNF', coach: 'A1', berth: 15, berthType: 'UB' }, baseFarePaise: 246000, updatedAgoSec: 12 },
 
   // 20635 Vande Bharat — confirmed-only, T-15 current booking.
   { trainNumber: '20635', date: DEMO_DATE, classCode: 'CC', status: { kind: 'CNF', coach: 'C3', berth: 22, berthType: 'A' }, baseFarePaise: 89500, updatedAgoSec: 5 },

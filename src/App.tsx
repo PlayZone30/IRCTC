@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import { routeDefs, PlaceholderFor } from '@/routes';
 import { AppShell } from '@/components/ui/AppShell';
 import { ToastHost } from '@/components/ui/Toast';
+import { AgentDrawer } from '@/components/agent/AgentDrawer';
 import { DevGallery } from '@/screens/DevGallery';
 import { Landing } from '@/screens/Landing';
 import { Results } from '@/screens/Results';
@@ -34,6 +35,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>
+      <AgentDrawer />
       <ToastHost />
     </>
   );

@@ -25,7 +25,7 @@ export const stations: Station[] = [
   { code: 'MS', name: 'Chennai Egmore', city: 'Chennai', state: 'Tamil Nadu', cluster: 'MAA', aliases: ['egmore', 'chennai egmore'] },
 
   // Kollam cluster — deliberate ambiguity for the agent (§10.1)
-  { code: 'QLN', name: 'Kollam Jn', city: 'Kollam', state: 'Kerala', cluster: 'KLM', aliases: ['kollam', 'kollam junction', 'quilon'] },
+  { code: 'QLN', name: 'Kollam Jn', city: 'Kollam', state: 'Kerala', cluster: 'KLM', aliases: ['kollam junction', 'kollam jn', 'quilon'] },
   { code: 'QLM', name: 'Kollam Town', city: 'Kollam', state: 'Kerala', cluster: 'KLM', aliases: ['kollam town'] },
   { code: 'KYJ', name: 'Kayankulam', city: 'Kayankulam', state: 'Kerala', cluster: 'KLM', aliases: ['kayankulam'] },
   { code: 'TVC', name: 'Trivandrum Central', city: 'Thiruvananthapuram', state: 'Kerala', cluster: 'TVM', aliases: ['trivandrum', 'thiruvananthapuram', 'tvc'] },
