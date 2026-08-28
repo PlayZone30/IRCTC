@@ -10,6 +10,7 @@ import { Passengers } from '@/screens/Passengers';
 import { Review } from '@/screens/Review';
 import { Payment } from '@/screens/Payment';
 import { OrderDetail } from '@/screens/OrderDetail';
+import { Ready } from '@/screens/Ready';
 import { NotFound } from '@/screens/NotFound';
 
 const builtScreens: Partial<Record<(typeof routeDefs)[number]['path'], React.ReactNode>> = {
@@ -19,6 +20,7 @@ const builtScreens: Partial<Record<(typeof routeDefs)[number]['path'], React.Rea
   '/book/review': <Review />,
   '/book/payment': <Payment />,
   '/orders/:orderId': <OrderDetail />,
+  '/ready': <Ready />,
 };
 
 function App() {
