@@ -25,6 +25,14 @@ export interface InventoryEntry {
   date: string;
   classCode: ClassCode;
   boardingStationCode?: string;
+  /**
+   * Segment destination. Only set on entries that model a specific
+   * leg of a two-leg alternate (§7.4). When set, the entry is invisible
+   * to the ordinary lookups (findInventory / inventoryForTrainAndDate)
+   * and reachable only via segmentStatus() — so a segment leg never
+   * leaks into the plain all-class comparison on Results.
+   */
+  toStationCode?: string;
   status: BookingStatus;
   baseFarePaise: number;
   updatedAgoSec: number;
@@ -82,9 +90,15 @@ export const inventory: InventoryEntry[] = [
   { trainNumber: '20635', date: DEMO_DATE, classCode: 'EC', status: { kind: 'CNF', coach: 'EC1', berth: 8, berthType: 'WS' }, baseFarePaise: 172500, updatedAgoSec: 5 },
 
   // 12951 Mumbai Rajdhani — two-leg-only demonstration (BCT->NDLS via BPL).
+  // Direct 3A is REGRET, but each leg is separately confirmed — the exact
+  // situation the two-leg alternate (§7.4) exists for. The two segment
+  // entries below carry a toStationCode, so they are only reachable via
+  // segmentStatus(), never via the ordinary all-class lookups.
   { trainNumber: '12951', date: DEMO_DATE_PLUS_1, classCode: '3A', status: { kind: 'REGRET' }, baseFarePaise: 214000, updatedAgoSec: 8 },
   { trainNumber: '12951', date: DEMO_DATE_PLUS_1, classCode: '2A', status: { kind: 'WL', type: 'GNWL', number: 8 }, baseFarePaise: 305000, updatedAgoSec: 8 },
   { trainNumber: '12951', date: DEMO_DATE_PLUS_1, classCode: '1A', status: { kind: 'CNF_NO_BERTH' }, baseFarePaise: 512000, updatedAgoSec: 8 },
+  { trainNumber: '12951', date: DEMO_DATE_PLUS_1, classCode: '3A', boardingStationCode: 'BCT', toStationCode: 'BPL', status: { kind: 'CNF', coach: 'B1', berth: 20, berthType: 'LB' }, baseFarePaise: 138000, updatedAgoSec: 8 },
+  { trainNumber: '12951', date: DEMO_DATE_PLUS_1, classCode: '3A', boardingStationCode: 'BPL', toStationCode: 'NDLS', status: { kind: 'CNF', coach: 'B3', berth: 44, berthType: 'SL' }, baseFarePaise: 96000, updatedAgoSec: 8 },
 ];
 
 /**
@@ -98,12 +112,35 @@ export const inventory: InventoryEntry[] = [
 export function findInventory(trainNumber: string, date: string, classCode: ClassCode, boardingStationCode?: string): InventoryEntry | undefined {
   if (boardingStationCode) {
     const specific = inventory.find(
-      (e) => e.trainNumber === trainNumber && e.date === date && e.classCode === classCode && e.boardingStationCode === boardingStationCode,
+      (e) =>
+        e.trainNumber === trainNumber &&
+        e.date === date &&
+        e.classCode === classCode &&
+        e.boardingStationCode === boardingStationCode &&
+        e.toStationCode === undefined,
     );
     if (specific) return specific;
   }
   return inventory.find(
-    (e) => e.trainNumber === trainNumber && e.date === date && e.classCode === classCode && e.boardingStationCode === undefined,
+    (e) => e.trainNumber === trainNumber && e.date === date && e.classCode === classCode && e.boardingStationCode === undefined && e.toStationCode === undefined,
+  );
+}
+
+/**
+ * Status for one leg of a journey, matching an entry that carries both
+ * a boarding station and a segment destination. Used only by the
+ * two-leg alternate generator (§7.4). Returns undefined when no such
+ * segment was seeded — the generator then simply does not offer a
+ * two-leg option for that split, rather than fabricating one.
+ */
+export function segmentStatus(trainNumber: string, date: string, classCode: ClassCode, fromCode: string, toCode: string): InventoryEntry | undefined {
+  return inventory.find(
+    (e) =>
+      e.trainNumber === trainNumber &&
+      e.date === date &&
+      e.classCode === classCode &&
+      e.boardingStationCode === fromCode &&
+      e.toStationCode === toCode,
   );
 }
 
@@ -114,7 +151,7 @@ export function findInventory(trainNumber: string, date: string, classCode: Clas
  * all-class comparison row for a specific search.
  */
 export function inventoryForTrainAndDate(trainNumber: string, date: string, boardingStationCode?: string): InventoryEntry[] {
-  const entries = inventory.filter((e) => e.trainNumber === trainNumber && e.date === date);
+  const entries = inventory.filter((e) => e.trainNumber === trainNumber && e.date === date && e.toStationCode === undefined);
   const byClass = new Map<ClassCode, InventoryEntry>();
   for (const entry of entries) {
     const isSpecificMatch = boardingStationCode && entry.boardingStationCode === boardingStationCode;
@@ -129,9 +166,15 @@ export function inventoryForTrainAndDate(trainNumber: string, date: string, boar
   return Array.from(byClass.values());
 }
 
-/** All boarding-station-specific entries for a train/date/class — used by the alternates generator (§7.4/Task 6). */
+/**
+ * All boarding-station-specific (non-segment) entries for a
+ * train/date/class — used by the board-earlier alternate generator
+ * (§7.4). Excludes two-leg segment entries.
+ */
 export function inventoryVariantsForClass(trainNumber: string, date: string, classCode: ClassCode): InventoryEntry[] {
-  return inventory.filter((e) => e.trainNumber === trainNumber && e.date === date && e.classCode === classCode);
+  return inventory.filter(
+    (e) => e.trainNumber === trainNumber && e.date === date && e.classCode === classCode && e.toStationCode === undefined,
+  );
 }
 
 export { key as inventoryKey };

@@ -23,10 +23,13 @@ import {
 } from '@/domain/availability';
 import { confirmationEvidenceFor } from '@/domain/confirmation';
 import { ConfirmationEvidenceBlock } from '@/components/booking/ConfirmationEvidence';
+import { AlternatesPanel } from '@/components/booking/AlternatesPanel';
+import { alternatesForTrain } from '@/domain/alternates';
+import { classesOnTrain } from '@/domain/availability';
 import { CLASS_LABELS, CLASS_OPTIONS, QUOTA_OPTIONS } from '@/domain/rules';
 import { stationByCode, stations } from '@/data/stations';
 import { useBookingStore } from '@/store/booking';
-import type { ClassCode } from '@/domain/types';
+import type { ClassCode, Itinerary } from '@/domain/types';
 
 /**
  * Results — PLAN.md §5 S2. The most important screen in the build:
@@ -84,6 +87,9 @@ export function Results() {
   const [sortMode, setSortMode] = useState<SortMode>('departure');
   const [selectedClassByTrain, setSelectedClassByTrain] = useState<Record<string, ClassCode>>({});
   const [classFilter, setClassFilter] = useState<Set<ClassCode>>(new Set());
+  // DEV-ONLY: ?openAlternates=NNNNN auto-expands a train's alternates panel,
+  // purely to screenshot that state. Harmless in normal use.
+  const openAlternatesFor = new URLSearchParams(window.location.search).get('openAlternates');
 
   const from = search.fromCode ? (stationByCode(search.fromCode) ?? null) : null;
   const to = search.toCode ? (stationByCode(search.toCode) ?? null) : null;
@@ -255,6 +261,8 @@ export function Results() {
                       result={result}
                       fromCode={search.fromCode!}
                       toCode={search.toCode!}
+                      date={search.date}
+                      initialAlternatesOpen={openAlternatesFor === result.train.number}
                       selectedClass={selectedClassByTrain[result.train.number]}
                       onSelectClass={(c) => setSelectedClassByTrain((s) => ({ ...s, [result.train.number]: c }))}
                       onBook={(classCode) => {
@@ -266,6 +274,23 @@ export function Results() {
                           fromStationCode: search.fromCode!,
                           toStationCode: search.toCode!,
                           boardingStationCode: search.fromCode!,
+                          passengers: [],
+                          reservationChoice: 'book_even_if_waitlisted',
+                          considerAutoUpgradation: false,
+                        });
+                        navigate('/book/passengers');
+                      }}
+                      onBookAlternate={(itinerary) => {
+                        // The alternate's ticketed origin may differ from the user's
+                        // boarding station (board_earlier), so we carry both onto the draft.
+                        setDraft({
+                          trainNumber: itinerary.legs[0].trainNumber,
+                          date: search.date,
+                          classCode: itinerary.legs[0].classCode,
+                          quota: search.quota,
+                          fromStationCode: itinerary.ticketedFrom,
+                          toStationCode: itinerary.ticketedTo,
+                          boardingStationCode: itinerary.boardAt,
                           passengers: [],
                           reservationChoice: 'book_even_if_waitlisted',
                           considerAutoUpgradation: false,
@@ -315,18 +340,25 @@ function TrainCard({
   result,
   fromCode,
   toCode,
+  date,
+  initialAlternatesOpen,
   selectedClass,
   onSelectClass,
   onBook,
+  onBookAlternate,
 }: {
   result: SearchResult;
   fromCode: string;
   toCode: string;
+  date: string;
+  initialAlternatesOpen?: boolean;
   selectedClass: ClassCode | undefined;
   onSelectClass: (c: ClassCode) => void;
   onBook: (c: ClassCode) => void;
+  onBookAlternate: (itinerary: Itinerary) => void;
 }) {
   const { train, inventories } = result;
+  const [alternatesOpen, setAlternatesOpen] = useState(initialAlternatesOpen ?? false);
   const fromHalt = train.halts.find((h) => h.stationCode === fromCode);
   const toHalt = train.halts.find((h) => h.stationCode === toCode);
   const durationMin = journeyDurationMinutes(train, fromCode, toCode);
@@ -335,6 +367,12 @@ function TrainCard({
   const dayDelta = toHalt && fromHalt ? toHalt.day - fromHalt.day : 0;
 
   const nothingConfirmed = inventories.every((i) => confirmationRankForStatus(i.status.kind) >= 3);
+  // Alternates across every class this train runs that the user cannot confirm
+  // directly — for 12624 KYJ->MAS this yields one board-earlier option per
+  // sold-out class (all confirmed from QLN upstream). §7.4.
+  const alternates = nothingConfirmed
+    ? classesOnTrain(train).flatMap((c) => alternatesForTrain(train, fromCode, toCode, date, c))
+    : [];
   // Guard: REGRET/NOT_AVAILABLE are not bookable — AvailabilityCell already
   // disables selection for these, but this guard keeps the book panel honest
   // even if a class becomes selected some other way (e.g. a stale selection
@@ -426,10 +464,32 @@ function TrainCard({
           Updated {inventories[0]?.updatedAgoSec ?? 0}s ago &middot; Actual running time may differ. Check live status before you leave.
         </p>
 
-        {nothingConfirmed ? (
-          <div className="mt-4 rounded-[var(--r-field)] bg-[var(--primary-weak)] p-3 text-sm text-[var(--primary-press)]">
-            No confirmed berth on this train. Alternate boarding stations, once available (coming soon), may still get you a
-            confirmed seat.
+        {nothingConfirmed && alternates.length > 0 ? (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setAlternatesOpen((o) => !o)}
+              aria-expanded={alternatesOpen}
+              className="flex w-full items-center justify-between gap-2 rounded-[var(--r-field)] bg-[var(--primary-weak)] p-3 text-left text-sm font-medium text-[var(--primary-press)] hover:bg-[var(--primary-weak)]/80"
+            >
+              <span>
+                No confirmed berth on this train.{' '}
+                <span className="font-bold">
+                  {alternates.length} confirmed {alternates.length === 1 ? 'alternative' : 'alternatives'}
+                </span>
+              </span>
+              <span aria-hidden>{alternatesOpen ? '−' : '→'}</span>
+            </button>
+            {alternatesOpen ? (
+              <div className="mt-3">
+                <AlternatesPanel alternates={alternates} onBook={onBookAlternate} />
+              </div>
+            ) : null}
+          </div>
+        ) : nothingConfirmed ? (
+          <div className="mt-4 rounded-[var(--r-field)] bg-[var(--surface-2)] p-3 text-sm text-[var(--ink-2)]">
+            No confirmed berth on this train, and no confirmed alternative was found for your route today. Try a nearby station or
+            an adjacent date.
           </div>
         ) : null}
       </div>
