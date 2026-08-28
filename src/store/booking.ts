@@ -24,6 +24,7 @@ interface BookingState {
   swapStations: () => void;
   draft: BookingDraft | null;
   setDraft: (draft: BookingDraft | null) => void;
+  updateDraft: (patch: Partial<BookingDraft>) => void;
 }
 
 function todayIso(): string {
@@ -50,4 +51,5 @@ export const useBookingStore = create<BookingState>((set) => ({
     })),
   draft: null,
   setDraft: (draft) => set({ draft }),
+  updateDraft: (patch) => set((s) => (s.draft ? { draft: { ...s.draft, ...patch } } : {})),
 }));

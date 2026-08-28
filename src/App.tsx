@@ -5,11 +5,15 @@ import { ToastHost } from '@/components/ui/Toast';
 import { DevGallery } from '@/screens/DevGallery';
 import { Landing } from '@/screens/Landing';
 import { Results } from '@/screens/Results';
+import { Passengers } from '@/screens/Passengers';
+import { Review } from '@/screens/Review';
 import { NotFound } from '@/screens/NotFound';
 
 const builtScreens: Partial<Record<(typeof routeDefs)[number]['path'], React.ReactNode>> = {
   '/': <Landing />,
   '/search': <Results />,
+  '/book/passengers': <Passengers />,
+  '/book/review': <Review />,
 };
 
 function App() {
