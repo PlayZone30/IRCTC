@@ -1,0 +1,23 @@
+/* SIGNAL ARCHIVE REFINEMENT — recurring rail spine, stamped timetable inventory, and archival paper signals. */
+.atlas-route-spine { position: fixed; z-index: 25; top: 126px; left: 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 10px 0 12px; border-left: 1px solid rgba(11,78,154,.42); background: rgba(244,240,231,.82); backdrop-filter: blur(8px); }
+.atlas-route-spine::after { content:""; position:absolute; left:-4px; bottom:-5px; width:7px; height:7px; border-radius:50%; background:#E97A23; box-shadow:0 0 0 4px rgba(233,122,35,.14); }
+.route-title { margin: 0 0 9px 13px; color:#69727B; font-size:8px; font-weight:700; letter-spacing:.16em; transform: rotate(-90deg); transform-origin:left top; position:absolute; top:7px; left:6px; white-space:nowrap; }
+.atlas-route-spine a { width: 30px; height: 49px; display:flex; align-items:center; gap:9px; color:#0B4E9A; text-decoration:none; transition:width .18s cubic-bezier(.23,1,.32,1), background .18s ease-out; overflow:hidden; }
+.atlas-route-spine a:hover { width:128px; background:#FFFDF8; }.atlas-route-spine a:first-of-type { margin-top:30px; }
+.atlas-route-spine a b { width:30px; padding-left:10px; font-size:8px; letter-spacing:.08em; flex:0 0 auto; }.atlas-route-spine a span { white-space:nowrap; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.inventory-section { background-color:#FFFDF8; background-image:radial-gradient(rgba(11,78,154,.14) .7px, transparent .7px); background-size:19px 19px; }
+.inventory-section::before { content:"TIMETABLE / DOCUMENTED CAPABILITIES"; position:absolute; top:31px; right:clamp(24px,6.5vw,104px); color:rgba(11,78,154,.5); font-size:9px; font-weight:700; letter-spacing:.16em; }
+.feature-grid { border:0; background:transparent; gap:14px; grid-template-columns:repeat(3,minmax(0,1fr)); }
+.feature-card { position:relative; border:1px solid #D8D0C2; border-left:4px solid #0B4E9A; box-shadow:5px 5px 0 rgba(23,32,43,.045); }
+.feature-card::after { content:"EVIDENCE LOG"; position:absolute; top:11px; right:11px; color:rgba(11,78,154,.32); font-size:7px; font-weight:700; letter-spacing:.12em; }
+.feature-card:nth-child(3n+2) { border-left-color:#E97A23; }.feature-card:nth-child(3n+3) { border-left-color:#2B6B59; }
+.chart-card { border-top:4px solid #0B4E9A; background-image:radial-gradient(rgba(11,78,154,.12) .55px, transparent .55px); background-size:16px 16px; }
+.pie-card { border-top-color:#E97A23; }.chart-card header span,.chart-card header>b,.chart-card h3,.pie-wrap strong { font-variant-numeric:tabular-nums; }
+.chart-card header>b { background:#FFFDF8; }.chart-card h3 { letter-spacing:-.025em; }.chart-wrap { border-bottom:1px dashed #B9C7D3; }
+.landscape-section::after { content:"01 · LANDSCAPE"; position:absolute; right:clamp(24px,2.2vw,44px); top:117px; color:#0B4E9A; font-size:9px; font-weight:700; letter-spacing:.14em; writing-mode:vertical-rl; }
+.ai-section { position:relative; }.ai-section::after { content:"02 · AI LAYER"; position:absolute; right:20px; bottom:30px; color:rgba(255,255,255,.48); font-size:9px; font-weight:700; letter-spacing:.14em; writing-mode:vertical-rl; }
+.connected-section::before { content:"03 · CONNECTED JOURNEY"; position:absolute; left:clamp(24px,3.2vw,52px); top:36px; color:#0B4E9A; font-size:9px; font-weight:700; letter-spacing:.15em; }
+.sources-section::before { content:"04 · EVIDENCE REGISTER"; position:absolute; left:clamp(24px,3.2vw,52px); top:36px; color:#F5B96F; font-size:9px; font-weight:700; letter-spacing:.15em; }
+.brand-mark { width:47px; height:47px; }.brand-lockup { min-width:230px; }.brand-lockup strong { font-size:15px; letter-spacing:.16em; }
+@media(max-width:1080px){ .atlas-route-spine{display:none}.feature-grid{gap:12px}.landscape-section::after{display:none} }
+@media(max-width:720px){ .inventory-section::before{position:static;display:block;margin-bottom:20px;font-size:8px}.feature-grid{grid-template-columns:1fr;gap:10px}.feature-card::after{display:none}.connected-section::before,.sources-section::before{display:none}.ai-section::after{right:11px;bottom:18px} }
