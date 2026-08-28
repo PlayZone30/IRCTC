@@ -184,16 +184,19 @@ export interface OrderTimelineStep {
   state: 'done' | 'active' | 'pending' | 'failed';
 }
 
+/** Which of the four §15 payment outcomes an order ended in — drives the S6 timeline. */
+export type PaymentOutcome = 'issued' | 'debit_failed' | 'partially_confirmed' | 'cancelled_refund';
+
 export interface Order {
   id: string; // "RI-2609-004421"
   createdAt: string;
   draft: BookingDraft;
   paymentState: PaymentState;
+  outcome: PaymentOutcome;
   pnr?: string;
   amountPaise: number;
   authRef?: string;
   utr?: string;
-  timeline: OrderTimelineStep[];
   decisionTrace?: DecisionTrace;
 }
 
