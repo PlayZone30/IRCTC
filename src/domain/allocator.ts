@@ -65,7 +65,7 @@ export function isAutoLowerBerthEligible(p: Passenger): boolean {
 
 // --- Deterministic pseudo-randomness (no Math.random anywhere, §11.4) --------
 
-function seededHash(...parts: (string | number)[]): number {
+export function seededHash(...parts: (string | number)[]): number {
   let h = 2166136261;
   const s = parts.join('|');
   for (let i = 0; i < s.length; i++) {

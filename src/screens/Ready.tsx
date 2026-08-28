@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { cx } from '@/lib/cx';
-import { getDemoNow } from '@/lib/clock';
+import { useDemoClock } from '@/domain/clock';
 import {
   CLASS_LABELS,
   MONTHLY_LIMIT,
@@ -255,7 +255,7 @@ function ArmedDraftCard({
   const { draft } = armed;
   const train = trainByNumber(draft.trainNumber);
   const openAt = useMemo(() => windowOpenAt(draft), [draft]);
-  const now = getDemoNow();
+  const now = useDemoClock();
   const isOpen = !openAt || openAt.getTime() <= now.getTime();
   const checklist = preflight(draft, draft.quota, verified);
   const allReady = checklist.every((c) => c.ok);

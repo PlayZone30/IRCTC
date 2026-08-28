@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Receipt } from 'lucide-react';
 import { Banner } from '@/components/ui/Banner';
@@ -11,7 +11,10 @@ import { TimelineVertical } from '@/components/ui/TimelineVertical';
 import { pushToast } from '@/components/ui/Toast';
 import { formatRupees } from '@/lib/money';
 import { buildOrderTimeline, outcomeSummary, refundAmountFor } from '@/domain/payment';
-import { CLASS_LABELS, FLAT_CANCELLATION_CHARGE_PAISE, QUOTA_LABELS, WL_AUTOCANCEL } from '@/domain/rules';
+import { CLASS_LABELS, FLAT_CANCELLATION_CHARGE_PAISE, firstChartTime, QUOTA_LABELS, WL_AUTOCANCEL } from '@/domain/rules';
+import { chartStageAt, runChartJob } from '@/domain/charting';
+import { setDemoNow, useDemoClock } from '@/domain/clock';
+import { describeStatus } from '@/lib/status';
 import { stationByCode } from '@/data/stations';
 import { trainByNumber } from '@/data/trains';
 import { useOrdersStore } from '@/store/orders';
@@ -30,6 +33,16 @@ export function OrderDetail() {
   const [grievanceOpen, setGrievanceOpen] = useState(false);
 
   const order = orderId ? getOrder(orderId) : undefined;
+  const demoNow = useDemoClock();
+
+  // DEV-ONLY: ?jumpToChart=1 sets the demo clock past the seeded order's
+  // first chart time, for screenshotting the live transition without
+  // waiting for the compressed clock to run. Flag for removal Task 16.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('jumpToChart') !== '1') return;
+    setDemoNow(new Date('2026-08-28T21:00:00+05:30'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!order) {
     return (
@@ -54,6 +67,16 @@ export function OrderDetail() {
   const toStation = stationByCode(order.draft.toStationCode);
   const canCancel = order.outcome === 'issued' || order.outcome === 'partially_confirmed';
 
+  // Live chart transition (§7.8): while any passenger is RAC/WL, the
+  // pending "Chart preparation" step becomes observable against the
+  // demo clock — no reload needed to see the resolution.
+  const hasUnresolvedPositions = order.outcome === 'partially_confirmed';
+  const boardingHalt = train?.halts.find((h) => h.stationCode === order.draft.boardingStationCode);
+  const departure = boardingHalt?.departure ? new Date(`${order.draft.date}T${boardingHalt.departure}:00`) : undefined;
+  const chartStage = departure ? chartStageAt(demoNow, departure) : 'not_yet';
+  const chartAt = departure ? firstChartTime(departure) : undefined;
+  const chartResult = hasUnresolvedPositions && chartStage !== 'not_yet' ? runChartJob(order, chartStage) : undefined;
+
   return (
     <div className="mx-auto max-w-[860px] px-4 py-6 sm:px-6">
       {/* Header */}
@@ -77,11 +100,45 @@ export function OrderDetail() {
         </div>
       </Card>
 
-      {/* The state machine */}
+      {/* The state machine — the "Chart preparation" step reflects the live demo clock */}
       <Card className="mt-4">
         <h2 className="mb-4 text-base font-bold text-[var(--ink)]">Money and ticket status</h2>
-        <TimelineVertical steps={steps} />
+        <TimelineVertical steps={liveSteps(steps, hasUnresolvedPositions, chartStage, chartAt)} />
       </Card>
+
+      {/* Chart results — §7.8: the RAC/WL -> CNF transition, observable */}
+      {hasUnresolvedPositions && chartResult ? (
+        <Card className="mt-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-base font-bold text-[var(--ink)]">
+              {chartResult.stage === 'second_chart' ? 'Second chart' : 'Chart'} result
+            </h2>
+            <Chip variant={chartResult.fullyConfirmed ? 'cnf' : 'rac'}>
+              {chartResult.fullyConfirmed ? 'All confirmed' : 'Partly resolved'}
+            </Chip>
+          </div>
+          <ul className="space-y-2">
+            {chartResult.passengers.map((p) => {
+              const before = describeStatus(p.before, order.draft.classCode);
+              const after = describeStatus(p.after, order.draft.classCode);
+              return (
+                <li key={p.passenger.id} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--r-field)] border border-[var(--hairline)] px-3 py-2.5">
+                  <span className="text-sm font-medium text-[var(--ink)]">{p.passenger.name}</span>
+                  <span className="flex items-center gap-2 text-sm">
+                    <Chip variant={before.variant}>{before.chipText}</Chip>
+                    {p.changed ? (
+                      <>
+                        <span className="text-[var(--ink-3)]">&rarr;</span>
+                        <Chip variant={after.variant}>{after.chipText}</Chip>
+                      </>
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      ) : null}
 
       {/* Failure branch call-to-action */}
       {order.outcome === 'debit_failed' ? (
@@ -192,6 +249,36 @@ export function OrderDetail() {
       </Sheet>
     </div>
   );
+}
+
+/**
+ * Overlay the live demo-clock chart state onto the pending "Chart
+ * preparation" step so it reflects §7.8 rather than a static "later".
+ */
+function liveSteps(
+  steps: ReturnType<typeof buildOrderTimeline>,
+  hasUnresolvedPositions: boolean,
+  chartStage: 'not_yet' | 'first_chart' | 'second_chart',
+  chartAt: Date | undefined,
+): ReturnType<typeof buildOrderTimeline> {
+  if (!hasUnresolvedPositions) return steps;
+  return steps.map((step) => {
+    if (step.key !== 'chart') return step;
+    if (chartStage === 'not_yet') {
+      return {
+        ...step,
+        detail: chartAt
+          ? `Scheduled for ${chartAt.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}. Advance the demo clock to watch it resolve.`
+          : step.detail,
+      };
+    }
+    return {
+      ...step,
+      state: 'done',
+      timestamp: chartAt ? chartAt.toISOString() : step.timestamp,
+      detail: 'Chart prepared. See the result below.',
+    };
+  });
 }
 
 function RefundRow({ label, value, border }: { label: string; value: string; border?: boolean }) {
