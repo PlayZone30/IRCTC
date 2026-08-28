@@ -44,9 +44,13 @@ export function SearchBar({
   onSearch: () => void;
 }) {
   return (
-    <div className="rounded-[var(--r-card)] bg-[var(--surface)] p-4 shadow-[var(--shadow-2)] sm:p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:divide-x sm:divide-[var(--hairline)]">
-        <div className="relative flex flex-1 items-end gap-2 sm:pr-4">
+    // @container: this component appears both in a narrow hero card (Landing)
+    // and a full-width sticky bar (Results). It must respond to its own box,
+    // not the viewport — a plain `sm:` breakpoint stacks correctly on mobile
+    // but overflows invisibly when embedded in a narrow desktop column.
+    <div className="@container rounded-[var(--r-card)] bg-[var(--surface)] p-4 shadow-[var(--shadow-2)] @lg:p-5">
+      <div className="flex flex-col gap-4 @lg:flex-row @lg:items-end @lg:divide-x @lg:divide-[var(--hairline)]">
+        <div className="relative flex flex-1 items-end gap-2 @lg:pr-4">
           <StationField label="From" value={from} onSelect={onFromChange} stations={stations} />
           <IconButton
             icon={<ArrowLeftRight className="size-4" />}
@@ -55,10 +59,10 @@ export function SearchBar({
             className="mb-1 shrink-0 bg-[var(--ink)] text-white hover:bg-[var(--ink-press)]"
           />
         </div>
-        <div className="flex-1 sm:px-4">
+        <div className="flex-1 @lg:px-4">
           <StationField label="To" value={to} onSelect={onToChange} stations={stations} />
         </div>
-        <div className="flex-1 sm:px-4">
+        <div className="flex-1 @lg:px-4">
           <label className="mb-1 block text-xs font-medium text-[var(--ink-2)]" htmlFor="journey-date">
             Journey date
           </label>
@@ -73,7 +77,7 @@ export function SearchBar({
             />
           </div>
         </div>
-        <div className="flex-1 sm:px-4">
+        <div className="flex-1 @lg:px-4">
           <label className="mb-1 block text-xs font-medium text-[var(--ink-2)]" htmlFor="journey-class">
             Class
           </label>
@@ -90,7 +94,7 @@ export function SearchBar({
             ))}
           </select>
         </div>
-        <div className="flex-1 sm:px-4">
+        <div className="flex-1 @lg:px-4">
           <label className="mb-1 block text-xs font-medium text-[var(--ink-2)]" htmlFor="journey-quota">
             Quota
           </label>
@@ -107,10 +111,10 @@ export function SearchBar({
             ))}
           </select>
         </div>
-        <div className="sm:pl-4">
-          <Button variant="accent" fullWidth className="sm:w-14 sm:px-0" onClick={onSearch}>
+        <div className="@lg:pl-4">
+          <Button variant="accent" fullWidth className="@lg:w-14 @lg:px-0" onClick={onSearch}>
             <Search className="size-5 shrink-0" aria-hidden />
-            <span className="sm:sr-only">Search trains</span>
+            <span className="@lg:sr-only">Search trains</span>
           </Button>
         </div>
       </div>
