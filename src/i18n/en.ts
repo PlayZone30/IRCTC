@@ -154,10 +154,78 @@ export const en = {
     conformanceNote: 'Built to WCAG 2.1 AA and GIGW 3.0 intent. Full conformance needs assistive-technology testing and expert audit.',
   },
 
+  // Orders list (S10a)
+  orders: {
+    heading: 'Your bookings',
+    empty: 'No bookings yet. Start by searching for a train.',
+    groupUpcoming: 'Upcoming',
+    groupAwaitingChart: 'Awaiting chart',
+    groupPast: 'Past journeys',
+    groupCancelled: 'Cancelled',
+    viewDetails: 'View details',
+    viewTicket: 'View ticket',
+    raiseQuery: 'Raise a query',
+    passengers: '{n} passenger',
+    passengers_plural: '{n} passengers',
+  },
+
+  // PNR status (S10b)
+  pnr: {
+    heading: 'PNR status',
+    label: 'Enter PNR number',
+    placeholder: '10-digit PNR',
+    check: 'Check status',
+    notFound: 'No booking found for this PNR. Check the number and try again.',
+    chartTime: 'Chart time',
+    chartPrepared: 'Chart prepared',
+    chartingIn: 'Charting in {time}',
+    yourPosition: 'Your position: {status} {number}',
+    viewOrder: 'View full order',
+    demoHint: 'Try a demo PNR: 4728166390 · 8890342156 · 2231905567',
+  },
+
+  // Charts / vacancy (S10c)
+  charts: {
+    heading: 'Charts / vacancy',
+    trainLabel: 'Train number',
+    trainPlaceholder: 'e.g. 12723',
+    dateLabel: 'Journey date',
+    stationLabel: 'Boarding station',
+    check: 'Show chart',
+    firstChart: 'First chart',
+    secondChart: 'Second chart',
+    notCharted: 'Chart not yet prepared for this train on this date.',
+    coachVacancy: 'Coach vacancy',
+    vacant: 'Vacant',
+    racBerths: 'RAC',
+    noVacancy: 'No vacancy',
+    demoHint: 'Try train 12723 · date 28 Aug · board HYB',
+  },
+
+  // Grievance (§7.9)
+  grievance: {
+    heading: 'Raise a query',
+    intro:
+      'This query is pre-filled with your transaction details, so support can act on it without asking you to repeat them.',
+    userNoteLabel: 'What would you like to say?',
+    userNotePlaceholder: 'Describe the issue in your words.',
+    submit: 'Submit query',
+    successTitle: 'Query raised',
+    owner: 'Owner: {role}',
+    nextAction: 'Next step: {action}',
+    deadline: 'Expected reply by {date}',
+    reference: 'Reference: {ref}',
+    timelineLabel: 'Query raised',
+  },
+
   footer: {
     disclaimer:
       'This is an independent hackathon prototype. All data, accounts and transactions are mock. It is not affiliated with, endorsed by, or connected to IRCTC or Indian Railways.',
   },
 } as const;
 
-export type Dictionary = typeof en;
+type DeepStringify<T> = {
+  [K in keyof T]: T[K] extends Record<string, any> ? DeepStringify<T[K]> : string;
+};
+
+export type Dictionary = DeepStringify<typeof en>;

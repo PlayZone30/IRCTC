@@ -5,8 +5,9 @@
  * every branch of the S6 timeline is demoable from a fresh load.
  */
 import { create } from 'zustand';
-import type { Order } from '@/domain/types';
+import type { Grievance, Order } from '@/domain/types';
 import { DEMO_DATE, DEMO_DATE_PLUS_1, DEMO_DATE_PLUS_2 } from '@/data/inventory';
+
 
 /** ISO timestamp helper anchored to the seeded demo "today". */
 function at(date: string, time: string): string {
@@ -124,6 +125,7 @@ interface OrdersState {
   getOrder: (id: string) => (Order & { accountId?: string }) | undefined;
   ordersForAccount: (accountId: string | null) => (Order & { accountId?: string })[];
   cancelOrder: (id: string) => void;
+  addGrievance: (orderId: string, userNote: string) => Grievance | null;
 }
 
 export const useOrdersStore = create<OrdersState>((set, get) => ({
@@ -137,4 +139,32 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
         o.id === id ? { ...o, outcome: 'cancelled_refund', paymentState: 'refund_initiated' } : o,
       ),
     })),
+  addGrievance: (orderId, userNote) => {
+    const order = get().orders.find((o) => o.id === orderId);
+    if (!order) return null;
+    const now = new Date();
+    // Reference: GRV-YYYYMMDD-<last 4 of orderId>
+    const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const suffix = orderId.slice(-4);
+    const reference = `GRV-${datePart}-${suffix}`;
+    const deadline = new Date(now.getTime() + 3 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const grievance: Grievance = {
+      orderId,
+      reference,
+      submittedAt: now.toISOString(),
+      userNote,
+      ownerRole: 'PNR Grievance Cell',
+      nextAction: 'You will receive a response within 3 working days.',
+      deadline,
+    };
+    set((s) => ({
+      orders: s.orders.map((o) =>
+        o.id === orderId
+          ? { ...o, grievances: [...(o.grievances ?? []), grievance] }
+          : o,
+      ),
+    }));
+    return grievance;
+  },
 }));
+

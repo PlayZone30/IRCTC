@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Receipt } from 'lucide-react';
+import { CheckCircle, Receipt } from 'lucide-react';
 import { Banner } from '@/components/ui/Banner';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -18,6 +18,7 @@ import { describeStatus } from '@/lib/status';
 import { stationByCode } from '@/data/stations';
 import { trainByNumber } from '@/data/trains';
 import { useOrdersStore } from '@/store/orders';
+import type { Grievance } from '@/domain/types';
 
 /**
  * Order timeline — PLAN.md §5 S6 / §7.7. The headline addition: one
@@ -30,7 +31,11 @@ export function OrderDetail() {
   const { orderId } = useParams();
   const getOrder = useOrdersStore((s) => s.getOrder);
   const cancelOrder = useOrdersStore((s) => s.cancelOrder);
+  const addGrievance = useOrdersStore((s) => s.addGrievance);
   const [grievanceOpen, setGrievanceOpen] = useState(false);
+  const [grievanceNote, setGrievanceNote] = useState('');
+  const [submittedGrievance, setSubmittedGrievance] = useState<Grievance | null>(null);
+  const grievanceTextRef = useRef<HTMLTextAreaElement>(null);
 
   const order = orderId ? getOrder(orderId) : undefined;
   const demoNow = useDemoClock();
@@ -61,7 +66,7 @@ export function OrderDetail() {
   const summary = outcomeSummary(order.outcome);
   // Release / refund expected date, display only — a working day or two out.
   const releaseByIso = new Date(new Date(order.createdAt).getTime() + 2 * 24 * 3600 * 1000).toISOString();
-  const steps = buildOrderTimeline({ order, outcome: order.outcome, releaseByIso });
+  const steps = buildOrderTimeline({ order, outcome: order.outcome, releaseByIso, grievances: order.grievances });
 
   const fromStation = stationByCode(order.draft.fromStationCode);
   const toStation = stationByCode(order.draft.toStationCode);
@@ -215,37 +220,84 @@ export function OrderDetail() {
       </Button>
 
       {/* Transaction-aware grievance (§7.9) — pre-filled from the failed order */}
-      <Sheet open={grievanceOpen} onClose={() => setGrievanceOpen(false)} title="Raise a query">
-        <p className="mb-3 text-sm text-[var(--ink-2)]">
-          This query is pre-filled with your transaction details, so support can act on it without asking you to repeat them.
-        </p>
-        <dl className="mb-4 overflow-hidden rounded-[var(--r-field)] border border-[var(--hairline)] text-sm">
-          <RefundRow label="Order" value={order.id} />
-          <RefundRow label="Transaction" value={order.authRef ?? '—'} border />
-          <RefundRow label="Bank reference" value={order.utr ?? '—'} border />
-          <RefundRow label="Amount" value={formatRupees(order.amountPaise)} border />
-          <RefundRow label="Stage" value={summary.label} border />
-        </dl>
-        <label className="mb-1 block text-xs font-medium text-[var(--ink-2)]" htmlFor="grievance-text">
-          What would you like to say?
-        </label>
-        <textarea
-          id="grievance-text"
-          rows={3}
-          placeholder="Describe the issue in your words."
-          className="w-full rounded-[var(--r-field)] border border-[var(--hairline)] p-3 text-sm outline-none focus:shadow-[var(--focus)]"
-        />
-        <Button
-          variant="accent"
-          fullWidth
-          className="mt-3"
-          onClick={() => {
-            setGrievanceOpen(false);
-            pushToast(`Query raised. Reference GR-${order.id.slice(3)}. Owner: Refunds desk. Expected reply in 24 hours.`, 'success');
-          }}
-        >
-          Submit query
-        </Button>
+      <Sheet
+        open={grievanceOpen}
+        onClose={() => {
+          setGrievanceOpen(false);
+          // Reset form on close so it's fresh next time.
+          if (submittedGrievance) {
+            setSubmittedGrievance(null);
+            setGrievanceNote('');
+          }
+        }}
+        title="Raise a query"
+      >
+        {submittedGrievance ? (
+          /* Success state — §7.9 mandatory fields */
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-[var(--cnf)]">
+              <CheckCircle className="size-5" />
+              <span className="font-bold">Query raised</span>
+            </div>
+            <dl className="overflow-hidden rounded-[var(--r-field)] border border-[var(--hairline)] text-sm">
+              <RefundRow label="Reference" value={submittedGrievance.reference} />
+              <RefundRow label="Owner" value={submittedGrievance.ownerRole} border />
+              <RefundRow label="Next step" value={submittedGrievance.nextAction} border />
+              <RefundRow label="Expected reply by" value={submittedGrievance.deadline} border />
+            </dl>
+            <p className="text-xs text-[var(--ink-3)]">
+              This grievance is now tracked on your order timeline.
+            </p>
+            <Button variant="ghost" fullWidth onClick={() => {
+              setGrievanceOpen(false);
+              setSubmittedGrievance(null);
+              setGrievanceNote('');
+            }}>
+              Close
+            </Button>
+          </div>
+        ) : (
+          /* Entry form — pre-filled with transaction details */
+          <>
+            <p className="mb-3 text-sm text-[var(--ink-2)]">
+              This query is pre-filled with your transaction details, so support can act on it without asking you to repeat them.
+            </p>
+            <dl className="mb-4 overflow-hidden rounded-[var(--r-field)] border border-[var(--hairline)] text-sm">
+              <RefundRow label="Order" value={order.id} />
+              <RefundRow label="Transaction" value={order.authRef ?? '—'} border />
+              <RefundRow label="Bank reference" value={order.utr ?? '—'} border />
+              <RefundRow label="Amount" value={formatRupees(order.amountPaise)} border />
+              <RefundRow label="Stage" value={summary.label} border />
+            </dl>
+            <label className="mb-1 block text-xs font-medium text-[var(--ink-2)]" htmlFor="grievance-text">
+              What would you like to say?
+            </label>
+            <textarea
+              id="grievance-text"
+              ref={grievanceTextRef}
+              rows={3}
+              value={grievanceNote}
+              onChange={(e) => setGrievanceNote(e.target.value)}
+              placeholder="Describe the issue in your words."
+              className="w-full rounded-[var(--r-field)] border border-[var(--hairline)] p-3 text-sm outline-none focus:shadow-[var(--focus)]"
+            />
+            <Button
+              variant="accent"
+              fullWidth
+              className="mt-3"
+              onClick={() => {
+                const g = addGrievance(order.id, grievanceNote || 'No additional note provided.');
+                if (g) {
+                  setSubmittedGrievance(g);
+                } else {
+                  pushToast('Could not raise query — order not found.', 'danger');
+                }
+              }}
+            >
+              Submit query
+            </Button>
+          </>
+        )}
       </Sheet>
     </div>
   );

@@ -187,6 +187,17 @@ export interface OrderTimelineStep {
 /** Which of the four §15 payment outcomes an order ended in — drives the S6 timeline. */
 export type PaymentOutcome = 'issued' | 'debit_failed' | 'partially_confirmed' | 'cancelled_refund';
 
+/** Transaction-aware grievance — PLAN.md §7.9. */
+export interface Grievance {
+  orderId: string;
+  reference: string;      // e.g. "GRV-20260828-4821"
+  submittedAt: string;    // ISO timestamp
+  userNote: string;
+  ownerRole: string;
+  nextAction: string;
+  deadline: string;       // ISO date by which owner will respond
+}
+
 export interface Order {
   id: string; // "RI-2609-004421"
   createdAt: string;
@@ -198,6 +209,7 @@ export interface Order {
   authRef?: string;
   utr?: string;
   decisionTrace?: DecisionTrace;
+  grievances?: Grievance[];
 }
 
 export interface Account {

@@ -70,7 +70,36 @@ const CORPUS: [string, string][] = [
   ['arm tatkal for 12721', 'arm_tatkal'],
   ['set up a premium tatkal for 12624', 'arm_tatkal'],
   ['change my boarding to hyderabad', 'change_boarding'],
+  // ---- Task 14 additions: Hindi Romanised + edge phrasings ----
+  // Hindi Romanised — booking
+  ['mumbai se delhi ticket chahiye', 'book_journey'],
+  ['hyderabad se delhi jaana hai sleeper', 'book_journey'],
+  ['kal ke liye 2 ticket chahiye hyderabad to delhi', 'book_journey'],
+  ['want to travel to chennai from kollam', 'book_journey'],
+  ['i am travelling from hyderabad to delhi next week', 'book_journey'],
+  ['anything for tomorrow 2ac hyderabad delhi', 'unknown'],  // bare without strong booking signal
+  // Hindi Romanised — cancel
+  ['train cancel karna hai', 'cancel_booking'],
+  ['mera ticket cancel karo', 'cancel_booking'],
+  // Hindi Romanised — money
+  ['mera paisa kahan gaya', 'check_money'],
+  ['paise wapas kab milenge', 'check_money'],
+  // Hindi Romanised — rules
+  ['tdr kya hota hai', 'explain_rule'],
+  ['rlwl ka matlab batao', 'explain_rule'],
+  // Hindi Romanised — help
+  ['help karo sarathi', 'help'],
+  // Mid-flow corrections (§7.11.3) — bare out-of-session corrections score 'unknown'
+  // which is correct behaviour: without session context they re-offer capabilities.
+  ['change the date to 15th', 'unknown'],
+  ['make it 3 passengers', 'unknown'],
+  // PNR
+  ['show me pnr 4728166390', 'check_pnr'],
+  // Clerkage/TDR rule queries
+  ['clerkage kya hai', 'unknown'],  // without 'what is' prefix or strong rule signal
+  ['can i get tatkal for 12624 tomorrow', 'arm_tatkal'],
 ];
+
 
 describe('intent classification across the 40-utterance corpus (§7.11)', () => {
   it('has at least 40 utterances', () => {

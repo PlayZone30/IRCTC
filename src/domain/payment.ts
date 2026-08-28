@@ -9,7 +9,8 @@
  * so the citizen can always see where their money is. Deterministic and
  * mock — no real gateway, no network.
  */
-import type { BookingDraft, Order, OrderTimelineStep, PaymentOutcome, PaymentState } from './types';
+import type { BookingDraft, Grievance, Order, OrderTimelineStep, PaymentOutcome, PaymentState } from './types';
+
 import { formatRupees } from '@/lib/money';
 import { translate } from '@/i18n';
 
@@ -70,14 +71,18 @@ export interface BuildTimelineOptions {
   outcome: PaymentOutcome;
   /** ISO date the hold will be released / refund credited by (display only). */
   releaseByIso?: string;
+  /** Raised grievances to append to the timeline as tracked items (§7.9). */
+  grievances?: Grievance[];
 }
+
 
 /**
  * Build the ordered timeline steps for an order given its outcome. This
  * is the single source for the S6 timeline — the screen renders whatever
  * this returns, so the four §15 outcomes all flow through one code path.
  */
-export function buildOrderTimeline({ order, outcome, releaseByIso }: BuildTimelineOptions): OrderTimelineStep[] {
+export function buildOrderTimeline({ order, outcome, releaseByIso, grievances }: BuildTimelineOptions): OrderTimelineStep[] {
+
   const created = order.createdAt;
   const t = (offsetSec: number) => new Date(new Date(created).getTime() + offsetSec * 1000).toISOString();
 
@@ -134,6 +139,20 @@ export function buildOrderTimeline({ order, outcome, releaseByIso }: BuildTimeli
         state: 'active',
       },
     );
+  }
+
+  // Append any raised grievances as tracked timeline steps (§7.9).
+  if (grievances && grievances.length > 0) {
+    for (const g of grievances) {
+      steps.push({
+        key: `grievance_${g.reference}`,
+        label: 'Query raised',
+        timestamp: g.submittedAt,
+        detail: `${g.ownerRole} · ${g.nextAction} · Reply by ${g.deadline}.`,
+        reference: g.reference,
+        state: 'done',
+      });
+    }
   }
 
   return steps;

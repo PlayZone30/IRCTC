@@ -25,8 +25,13 @@ interface IntentDef {
 const INTENTS: IntentDef[] = [
   {
     id: 'book_journey',
-    strong: [/\bbook\b/, /\breserve\b/, /\bneed to (get|go|travel)\b/, /\bget me\b/],
-    weak: [/\bticket\b/, /\btrain\b/, /\bseat\b/, /\bberth\b/, /\bto\b/],
+    strong: [
+      /\bbook\b/, /\breserve\b/, /\bneed to (get|go|travel)\b/, /\bget me\b/,
+      // Hindi Romanised aliases (§7.10, §14)
+      /\bticket chahiye\b/, /\bticket karna\b/, /\bsafar\b/, /\bjaana hai\b/,
+      /\bwant to (travel|go|get)\b/, /\btravel(l?ing)?\b/,
+    ],
+    weak: [/\bticket\b/, /\btrain\b/, /\bseat\b/, /\bberth\b/, /\bto\b/, /\bgoing to\b/, /\banything for\b/],
     // Two resolved stations is the decisive signal; one station + a date is strong too.
     entityBoost: (e) => {
       const stations = (e.fromCandidates.length ? 1 : 0) + (e.toCandidates.length ? 1 : 0);
@@ -38,54 +43,63 @@ const INTENTS: IntentDef[] = [
   },
   {
     id: 'arm_tatkal',
-    strong: [/\btatkal\b/],
-    weak: [/\barm\b/, /\bset up\b/, /\bready\b/, /\btomorrow\b/],
+    strong: [/\btatkal\b/, /\btatkal chahiye\b/],
+    weak: [/\barm\b/, /\bset up\b/, /\bready\b/, /\btomorrow\b/, /\bpremium tatkal\b/],
     // A train number with "tatkal" is the seeded "book me a tatkal for 12624" case.
     entityBoost: (e) => (e.trainNumber ? 0.25 : 0),
   },
   {
     id: 'check_money',
-    strong: [/\brefund\b/, /\bmy money\b/, /money was (deducted|debited)/, /\bdeducted\b/, /\bdebited\b/],
-    weak: [/\bwhere\b/, /\bstatus of my (payment|order)\b/, /\bnot? ticket\b/],
+    strong: [
+      /\brefund\b/, /\bmy money\b/, /money was (deducted|debited)/, /\bdeducted\b/, /\bdebited\b/,
+      // Hindi aliases
+      /\bpaise\b/, /\bpaisa\b/, /\bpaise kahan\b/, /\bpaise wapas\b/,
+    ],
+    weak: [/\bwhere\b/, /\bstatus of my (payment|order)\b/, /\bnot? ticket\b/, /\bmy orders?\b/, /\bshow.*order\b/],
     entityBoost: (e) => (e.orderRef ? 0.3 : 0),
   },
   {
     id: 'check_pnr',
-    strong: [/\bpnr\b/],
+    strong: [/\bpnr\b/, /\bpnr status\b/],
     weak: [/\bstatus\b/, /\bconfirmed\b/, /\bwaitlist\b/],
     entityBoost: (e) => (e.pnr ? 0.45 : 0),
   },
   {
     id: 'cancel_booking',
-    strong: [/\bcancel\b/],
+    strong: [/\bcancel\b/, /\bcancel karna\b/, /\bcancel karo\b/],
     weak: [/\bbooking\b/, /\bticket\b/, /\brefund\b/],
   },
   {
     id: 'explain_rule',
-    strong: [/\bwhat does\b/, /\bwhat is\b/, /\bexplain\b/, /\bmean(s|ing)?\b/, /\bcan i board\b/, /\bhow does\b/, /\bwhat happens\b/],
-    weak: [/\bwaitlist\b/, /\btqwl\b/, /\bgnwl\b/, /\brac\b/, /\bquota\b/, /\btatkal\b/, /\brule\b/, /\bcharge\b/],
+    strong: [
+      /\bwhat does\b/, /\bwhat is\b/, /\bexplain\b/, /\bmean(s|ing)?\b/, /\bcan i board\b/, /\bhow does\b/, /\bwhat happens\b/,
+      // Hindi aliases
+      /\bmatlub\b/, /\bkya matlab\b/, /\bkya hota\b/, /\bbatao\b/, /\bsamjhao\b/,
+    ],
+    weak: [/\bwaitlist\b/, /\btqwl\b/, /\bgnwl\b/, /\brac\b/, /\bquota\b/, /\btatkal\b/, /\brule\b/, /\bcharge\b/, /\btdr\b/, /\bclerkage\b/, /\bkya hai\b/],
   },
   {
     id: 'find_alternates',
-    strong: [/\balternat/, /\bsomething confirmed\b/, /\bany way\b/, /\banything confirmed\b/],
-    weak: [/\bconfirmed\b/, /\bfull\b/, /\bshow me\b/, /\boptions\b/],
+    strong: [/\balternat/, /\bsomething confirmed\b/, /\bany way\b/, /\banything confirmed\b/, /\bshow me something\b/],
+    weak: [/\bconfirmed\b/, /\bfull\b/, /\bshow me\b/, /\boptions\b/, /\bany other\b/],
   },
   {
     id: 'change_boarding',
-    strong: [/\bchange my boarding\b/, /\bboarding point\b/, /\bboard (from|at)\b/],
-    weak: [/\bboarding\b/, /\bpickup\b/],
+    strong: [/\bchange my boarding\b/, /\bboarding point\b/, /\bboard (from|at)\b/, /\bboarding change\b/],
+    weak: [/\bboarding\b/, /\bpickup\b/, /\bchange.*board\b/],
   },
   {
     id: 'greeting',
-    strong: [/^\s*(hi|hello|hey|namaste|namaskar)\b/],
+    strong: [/^\s*(hi|hello|hey|namaste|namaskar|jai hind)\b/],
     weak: [],
   },
   {
     id: 'help',
-    strong: [/\bhelp\b/, /\bwhat can you do\b/, /\bwhat do you do\b/],
+    strong: [/\bhelp\b/, /\bwhat can you do\b/, /\bwhat do you do\b/, /\bhelp karo\b/, /\bkya kar sakte\b/],
     weak: [/\bhow\b/],
   },
 ];
+
 
 function scoreOne(def: IntentDef, text: string, entities: Entities): number {
   let raw = 0;
